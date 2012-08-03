@@ -65,8 +65,8 @@ class AccountTest extends \PHPUnit_Framework_TestCase
 
         $data = $enom->getAccount()->getTldList();
 
-        // With 104 results I'm not going to write an assertEquals for each of  them
-        $this->assertEquals(104, (int) $data->tldcount);
+        // With 116 results I'm not going to write an assertEquals for each of them
+        $this->assertEquals(116, (int) $data->tldcount);
     }
 
     /**
