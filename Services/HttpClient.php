@@ -35,6 +35,11 @@ class HttpClient
      */
     public function __construct($url, $username, $password)
     {
+        $scheme = parse_url($url);
+        if (!isset($scheme['path']) || !$scheme['path']) {
+            $url .= '/interface.asp';
+        }
+        
         $this->url      = $url;
         $this->username = $username;
         $this->password = $password;
@@ -57,7 +62,7 @@ class HttpClient
         // A JSON response is not yet implemented by Enom
         $payload['responsetype']      = "XML";
 
-        $url = $this->url . '/interface.asp?' . http_build_query($payload);
+        $url = $this->url . '?' . http_build_query($payload);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);

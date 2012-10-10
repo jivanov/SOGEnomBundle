@@ -96,4 +96,14 @@ class Enom
     {
         return new Commands\Domain\Registration($this->url, $this->username, $this->password);
     }
+    
+    /**
+     * Get Account Pricing commands
+     *
+     * @return Commands\Pricing
+     */
+    public function getPricing()
+    {
+        return new Commands\Pricing($this->url, $this->username, $this->password);
+    }
 }
