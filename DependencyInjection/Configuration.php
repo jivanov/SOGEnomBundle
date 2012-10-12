@@ -12,6 +12,7 @@
 namespace SOG\EnomBundle\DependencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 /**
  * This is the class that validates and merges configuration from your app/config files
@@ -28,22 +29,74 @@ class Configuration implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('sog_enom');
+        $rootNode
+            ->beforeNormalization()
+                ->ifTrue(function ($v) { 
+                    return is_array($v) && array_key_exists('accounts', $v) && !array_key_exists('username', $v);     
+                })
+                ->then(function ($v) {
+                    $account = array();
+                    foreach (array('username', 'password') as $key) {
+                        if (array_key_exists($key, $v['accounts'])) {
+                            $account[$key] = $v['accounts'][$key];
+                            unset($v['accounts'][$key]);
+                        }
+                    }
 
-        $rootNode->children()
-                ->scalarNode('url')
+                    $v['default_account'] = isset($v['default_account']) ? (string) $v['default_account'] : 'default';
+                    
+                    if (sizeof($account) && !isset($v['accounts'][ $v['default_account'] ] )) {
+                        $v['accounts'] = array($v['default_account'] => $account);
+                    }
+
+                    
+                    if (!isset($v['accounts'][ $v['default_account'] ])) {
+                        
+                        if (sizeof($v['accounts']) !== 1) {
+                            throw new InvalidConfigurationException("Invalid default_account for sog_enom.");
+                        }
+                        else {
+                            $v['default_account'] = key($v['accounts']);
+                        }
+                    }
+                    
+                    return $v;
+
+                })
+            ->end()
+            ->fixXmlConfig('account')
+            ->append($this->getEnomAccountsNode())
+            ->children()
+                ->scalarNode('default_account')
+            ->end()
+            ->scalarNode('url')
                 ->isRequired()
                 ->cannotBeEmpty()
-                ->end()
-                ->scalarNode('username')
-                ->isRequired()
-                ->cannotBeEmpty()
-                ->end()
-                ->scalarNode('password')
-                ->isRequired()
-                ->cannotBeEmpty()
-                ->end()
-                ->end();
+            ->end()
+            ->scalarNode('username')
+            ->end()
+            ->scalarNode('password')
+            ->end();
 
         return $treeBuilder;
+    }
+    
+    private function getEnomAccountsNode()
+    {
+        $treeBuilder = new TreeBuilder();
+        $node = $treeBuilder->root('accounts');
+
+        $node
+            ->requiresAtLeastOneElement()
+            ->useAttributeAsKey('name')
+            ->prototype('array')
+                ->children()
+                    ->scalarNode('username')->isRequired()->cannotBeEmpty()->end()
+                    ->scalarNode('password')->isRequired()->cannotBeEmpty()->end()
+                ->end()
+            ->end()
+        ;
+
+        return $node;
     }
 }
